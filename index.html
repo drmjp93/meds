@@ -16,130 +16,112 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // 1. We added useEffect to handle fetching data from the outside world
-    const { useState, useEffect } = React;
+   const { useState, useEffect } = React;
 
     function DrugDirectory() {
-      // 2. Set up state to hold your cloudflare data
-      const [drugsData, setDrugsData] = useState([]);
-      const [isLoading, setIsLoading] = useState(true);
       const [searchTerm, setSearchTerm] = useState('');
+      const [drugsData, setDrugsData] = useState([]);
       const [selectedDrug, setSelectedDrug] = useState(null);
+      const [isLoading, setIsLoading] = useState(false);
 
-      // 3. THIS IS WHERE YOUR LINK GOES
-     useEffect(() => {
-        // REPLACE WITH YOUR ACTUAL CLOUDFLARE LINK
-        const backendUrl = "https://drugs.drmjp93.workers.dev";
+      // Listen to the search bar and fetch from Cloudflare dynamically
+      useEffect(() => {
+        // 1. Backend rule: If less than 2 characters, do nothing and clear the list.
+        if (searchTerm.trim().length < 2) {
+          setDrugsData([]);
+          setIsLoading(false);
+          return;
+        }
 
-        fetch(backendUrl)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log("✅ RAW DATA FROM CLOUDFLARE:", data);
+        // 2. Wait 300ms after the user stops typing before fetching (saves bandwidth)
+        const delayDebounceFn = setTimeout(() => {
+          setIsLoading(true);
+          
+          // REPLACE THIS WITH YOUR ACTUAL CLOUDFLARE WORKER URL
+          const baseUrl = "https://your-cloudflare-worker-link-goes-here.com";
+          const fetchUrl = `${baseUrl}?q=${encodeURIComponent(searchTerm)}`;
 
-            // 1. Figure out where the array is hiding
-            let actualArray = [];
-            
-            if (Array.isArray(data)) {
-              // It's a pure array [ {drug1}, {drug2} ]
-              actualArray = data;
-            } else if (data.drugs && Array.isArray(data.drugs)) {
-              // It's wrapped like { drugs: [ {drug1}, {drug2} ] }
-              actualArray = data.drugs;
-            } else if (data.results && Array.isArray(data.results)) {
-              // It's wrapped like { results: [ {drug1}, {drug2} ] }
-              actualArray = data.results;
-            } else {
-              // Hunt for any array inside the object
-              const arrayKey = Object.keys(data).find(key => Array.isArray(data[key]));
-              actualArray = arrayKey ? data[arrayKey] : [];
-            }
+          fetch(fetchUrl)
+            .then(response => response.json())
+            .then(data => {
+              // Ensure we are working with an array
+              const actualArray = Array.isArray(data) ? data : [];
+              setDrugsData(actualArray);
+              
+              // Only auto-select if we aren't currently viewing a drug, or if the list updated
+              if (actualArray.length > 0 && !selectedDrug) {
+                setSelectedDrug(actualArray[0]);
+              }
+              setIsLoading(false);
+            })
+            .catch(error => {
+              console.error("Fetch error:", error);
+              setIsLoading(false);
+            });
+        }, 300);
 
-            console.log("🚀 EXTRACTED ARRAY:", actualArray);
-
-            // 2. Save the data to the app
-            setDrugsData(actualArray);           
-            
-            if (actualArray.length > 0) {
-              setSelectedDrug(actualArray[0]);     
-            }
-            
-            setIsLoading(false);          
-          })
-          .catch(error => {
-            console.error("❌ FETCH FAILED:", error);
-            setIsLoading(false);
-          });
-      }, []);
-      // Filter logic (waits for data to load first)
-      const filteredDrugs = drugsData.filter(drug => {
-        if (!drug) return false;
-        const search = searchTerm.toLowerCase();
-        const contentMatch = drug.Active_Content ? drug.Active_Content.toLowerCase().includes(search) : false;
-        const categoryMatch = drug.Category ? drug.Category.toLowerCase().includes(search) : false;
-        return contentMatch || categoryMatch;
-      });
+        return () => clearTimeout(delayDebounceFn);
+      }, [searchTerm]);
 
       const getBadgeColors = (safetyClass) => {
-        if (safetyClass === 'SAFE') return 'bg-emerald-50 border-emerald-200 text-emerald-900';
-        if (safetyClass === 'CAUTION') return 'bg-amber-50 border-amber-200 text-amber-900';
+        if (!safetyClass) return 'bg-gray-50 border-gray-200 text-gray-900';
+        const sc = safetyClass.toUpperCase();
+        if (sc === 'SAFE') return 'bg-emerald-50 border-emerald-200 text-emerald-900';
+        if (sc === 'CAUTION') return 'bg-amber-50 border-amber-200 text-amber-900';
         return 'bg-gray-50 border-gray-200 text-gray-900';
       };
-
-      // 4. Show a loading screen while we wait for Cloudflare
-      if (isLoading) {
-        return (
-          <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-            <p className="text-xl text-gray-500 font-semibold animate-pulse">Loading drug database...</p>
-          </div>
-        );
-      }
 
       return (
         <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans text-gray-800">
           
-          {/* LEFT PANE (Filters) */}
+          {/* LEFT PANE (Filters - Note: These now only filter the 15 visible results) */}
           <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 hidden md:flex">
             <div className="p-4 border-b border-gray-100">
               <h2 className="font-bold text-lg text-gray-900">Filters</h2>
+              <p className="text-xs text-gray-500 mt-1">Filters apply to current search results.</p>
             </div>
-            <div className="p-4 flex-1 overflow-y-auto space-y-6">
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Category</h3>
-                <label className="flex items-center space-x-2 text-sm mt-1 cursor-pointer">
-                  <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
-                  <span>Analgesic</span>
-                </label>
-                <label className="flex items-center space-x-2 text-sm mt-1 cursor-pointer">
-                  <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
-                  <span>Antibiotic</span>
-                </label>
-              </div>
+            <div className="p-4 flex-1 overflow-y-auto space-y-6 opacity-50 cursor-not-allowed">
+               <p className="text-sm text-gray-400 italic">Filters disabled in autocomplete mode.</p>
             </div>
           </aside>
 
           {/* MIDDLE PANE (Search & List) */}
           <section className="w-96 bg-gray-50 border-r border-gray-200 flex flex-col z-0">
-            <div className="p-4 bg-white border-b border-gray-200 sticky top-0">
+            <div className="p-4 bg-white border-b border-gray-200 sticky top-0 shadow-sm z-10">
               <input 
                 type="text" 
-                placeholder="Search drugs or categories..." 
+                placeholder="Type at least 2 letters to search..." 
                 className="w-full p-2.5 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {filteredDrugs.map((drug, index) => (
+            
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
+              {isLoading && (
+                <div className="absolute top-4 left-0 right-0 text-center text-sm text-blue-500 font-medium animate-pulse">
+                  Searching database...
+                </div>
+              )}
+
+              {!isLoading && searchTerm.length < 2 && (
+                <div className="text-center text-sm text-gray-400 mt-10">
+                  Search for a drug or category to begin.
+                </div>
+              )}
+
+              {!isLoading && searchTerm.length >= 2 && drugsData.length === 0 && (
+                <div className="text-center text-sm text-gray-400 mt-10">
+                  No drugs found for "{searchTerm}".
+                </div>
+              )}
+
+              {!isLoading && drugsData.map((drug, index) => (
                 <div 
                   key={drug.id || index}
                   onClick={() => setSelectedDrug(drug)}
                   className={`p-4 rounded-lg cursor-pointer transition-all duration-150 border ${
-                    selectedDrug && selectedDrug.id === drug.id 
+                    selectedDrug && selectedDrug.Active_Content === drug.Active_Content 
                       ? 'bg-blue-50 border-blue-400 shadow-sm' 
                       : 'bg-white border-gray-200 hover:border-blue-300'
                   }`}
@@ -168,22 +150,22 @@
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Renal_Class)}`}>
                       <p className="text-xs font-bold uppercase tracking-wider opacity-70">Renal</p>
-                      <p className="text-lg font-bold mt-1">{selectedDrug.Renal_Class}</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Renal_Class || "N/A"}</p>
                       <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Renal_Note || "No notes available."}</p>
                     </div>
                     <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Hepatic_Class)}`}>
                       <p className="text-xs font-bold uppercase tracking-wider opacity-70">Hepatic</p>
-                      <p className="text-lg font-bold mt-1">{selectedDrug.Hepatic_Class}</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Hepatic_Class || "N/A"}</p>
                       <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Hepatic_Note || "No notes available."}</p>
                     </div>
                     <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Pregnancy_Class)}`}>
                       <p className="text-xs font-bold uppercase tracking-wider opacity-70">Pregnancy</p>
-                      <p className="text-lg font-bold mt-1">{selectedDrug.Pregnancy_Class}</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Pregnancy_Class || "N/A"}</p>
                       <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Pregnancy_Note || "No notes available."}</p>
                     </div>
                     <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Lactation_Class)}`}>
                       <p className="text-xs font-bold uppercase tracking-wider opacity-70">Lactation</p>
-                      <p className="text-lg font-bold mt-1">{selectedDrug.Lactation_Class}</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Lactation_Class || "N/A"}</p>
                       <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Lactation_Note || "No notes available."}</p>
                     </div>
                   </div>
@@ -191,7 +173,7 @@
 
                 <div className="mb-10 bg-blue-50/50 p-6 rounded-xl border border-blue-100">
                   <h2 className="text-lg font-bold text-gray-900 mb-2">Maximum Adult Dosing</h2>
-                  <p className="text-blue-900 font-medium">{selectedDrug.Max_Dose_Adult}</p>
+                  <p className="text-blue-900 font-medium">{selectedDrug.Max_Dose_Adult || "Not specified."}</p>
                   {selectedDrug.Max_Dose_Notes && (
                     <p className="text-sm text-blue-700 mt-2">{selectedDrug.Max_Dose_Notes}</p>
                   )}
@@ -208,24 +190,29 @@
                           <th className="p-4 font-semibold text-gray-700 text-right">Price</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {selectedDrug["FIRST BRAND"] && (
+                        <tbody className="divide-y divide-gray-200">
+                        {selectedDrug["FIRST BRAND"] ? (
                           <tr className="hover:bg-gray-50">
                             <td className="p-4 font-bold text-gray-900">{selectedDrug["FIRST BRAND"]}</td>
                             <td className="p-4">{selectedDrug["FIRST MFG"]}</td>
                             <td className="p-4 text-right font-semibold text-emerald-600">
-                              {selectedDrug["FIRST PRICE"]} (INR)
+                              {selectedDrug["FIRST PRICE"] ? `${selectedDrug["FIRST PRICE"]} (INR)` : '-'}
                             </td>
                           </tr>
-                        )}
-                        {selectedDrug["SECOND BRAND"] && (
+                        ) : null}
+                        {selectedDrug["SECOND BRAND"] ? (
                           <tr className="hover:bg-gray-50">
                             <td className="p-4 font-bold text-gray-900">{selectedDrug["SECOND BRAND"]}</td>
                             <td className="p-4">{selectedDrug["SECOND MFG"]}</td>
                             <td className="p-4 text-right font-semibold text-emerald-600">
-                              {selectedDrug["SECOND PRICE"]} (INR)
+                              {selectedDrug["SECOND PRICE"] ? `${selectedDrug["SECOND PRICE"]} (INR)` : '-'}
                             </td>
                           </tr>
+                        ) : null}
+                        {!selectedDrug["FIRST BRAND"] && !selectedDrug["SECOND BRAND"] && (
+                            <tr>
+                                <td colSpan="3" className="p-4 text-center text-gray-400 italic">No pricing information available.</td>
+                            </tr>
                         )}
                       </tbody>
                     </table>
@@ -233,7 +220,11 @@
                 </div>
 
               </div>
-            ) : null}
+            ) : (
+                <div className="flex h-full items-center justify-center text-gray-400">
+                    Select a drug from the search results to view details.
+                </div>
+            )}
           </main>
 
         </div>
