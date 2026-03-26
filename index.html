@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drug Directory Dashboard</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // 1. We added useEffect to handle fetching data from the outside world
+    const { useState, useEffect } = React;
+
+    function DrugDirectory() {
+      // 2. Set up state to hold your cloudflare data
+      const [drugsData, setDrugsData] = useState([]);
+      const [isLoading, setIsLoading] = useState(true);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [selectedDrug, setSelectedDrug] = useState(null);
+
+      // 3. THIS IS WHERE YOUR LINK GOES
+      useEffect(() => {
+        // REPLACE THE URL BELOW WITH YOUR ACTUAL CLOUDFLARE LINK
+        const backendUrl = "https://drugs.drmjp93.workers.dev/";
+
+        fetch(backendUrl)
+          .then(response => response.json())
+          .then(data => {
+            setDrugsData(data);           // Save the 3.5k drugs to state
+            setSelectedDrug(data[0]);     // Automatically select the first drug
+            setIsLoading(false);          // Turn off the loading screen
+          })
+          .catch(error => {
+            console.error("Error fetching data:", error);
+            setIsLoading(false);
+          });
+      }, []); // The empty brackets mean "only do this once when the page loads"
+
+      // Filter logic (waits for data to load first)
+      const filteredDrugs = drugsData.filter(drug => {
+        if (!drug) return false;
+        const search = searchTerm.toLowerCase();
+        const contentMatch = drug.Active_Content ? drug.Active_Content.toLowerCase().includes(search) : false;
+        const categoryMatch = drug.Category ? drug.Category.toLowerCase().includes(search) : false;
+        return contentMatch || categoryMatch;
+      });
+
+      const getBadgeColors = (safetyClass) => {
+        if (safetyClass === 'SAFE') return 'bg-emerald-50 border-emerald-200 text-emerald-900';
+        if (safetyClass === 'CAUTION') return 'bg-amber-50 border-amber-200 text-amber-900';
+        return 'bg-gray-50 border-gray-200 text-gray-900';
+      };
+
+      // 4. Show a loading screen while we wait for Cloudflare
+      if (isLoading) {
+        return (
+          <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+            <p className="text-xl text-gray-500 font-semibold animate-pulse">Loading drug database...</p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans text-gray-800">
+          
+          {/* LEFT PANE (Filters) */}
+          <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 hidden md:flex">
+            <div className="p-4 border-b border-gray-100">
+              <h2 className="font-bold text-lg text-gray-900">Filters</h2>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto space-y-6">
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Category</h3>
+                <label className="flex items-center space-x-2 text-sm mt-1 cursor-pointer">
+                  <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
+                  <span>Analgesic</span>
+                </label>
+                <label className="flex items-center space-x-2 text-sm mt-1 cursor-pointer">
+                  <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
+                  <span>Antibiotic</span>
+                </label>
+              </div>
+            </div>
+          </aside>
+
+          {/* MIDDLE PANE (Search & List) */}
+          <section className="w-96 bg-gray-50 border-r border-gray-200 flex flex-col z-0">
+            <div className="p-4 bg-white border-b border-gray-200 sticky top-0">
+              <input 
+                type="text" 
+                placeholder="Search drugs or categories..." 
+                className="w-full p-2.5 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {filteredDrugs.map((drug, index) => (
+                <div 
+                  key={drug.id || index}
+                  onClick={() => setSelectedDrug(drug)}
+                  className={`p-4 rounded-lg cursor-pointer transition-all duration-150 border ${
+                    selectedDrug && selectedDrug.id === drug.id 
+                      ? 'bg-blue-50 border-blue-400 shadow-sm' 
+                      : 'bg-white border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 leading-tight">{drug.Active_Content}</h3>
+                  <p className="text-xs text-gray-500 mt-1 truncate">{drug.Category}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* RIGHT PANE (Details) */}
+          <main className="flex-1 bg-white overflow-y-auto relative">
+            {selectedDrug ? (
+              <div className="max-w-4xl mx-auto p-8 lg:p-12">
+                
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{selectedDrug.Active_Content}</h1>
+                  <span className="inline-block mt-3 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-semibold tracking-wide">
+                    {selectedDrug.Category}
+                  </span>
+                </div>
+
+                <div className="mb-10">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Safety Profile</h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Renal_Class)}`}>
+                      <p className="text-xs font-bold uppercase tracking-wider opacity-70">Renal</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Renal_Class}</p>
+                      <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Renal_Note || "No notes available."}</p>
+                    </div>
+                    <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Hepatic_Class)}`}>
+                      <p className="text-xs font-bold uppercase tracking-wider opacity-70">Hepatic</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Hepatic_Class}</p>
+                      <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Hepatic_Note || "No notes available."}</p>
+                    </div>
+                    <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Pregnancy_Class)}`}>
+                      <p className="text-xs font-bold uppercase tracking-wider opacity-70">Pregnancy</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Pregnancy_Class}</p>
+                      <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Pregnancy_Note || "No notes available."}</p>
+                    </div>
+                    <div className={`p-4 rounded-xl border ${getBadgeColors(selectedDrug.Lactation_Class)}`}>
+                      <p className="text-xs font-bold uppercase tracking-wider opacity-70">Lactation</p>
+                      <p className="text-lg font-bold mt-1">{selectedDrug.Lactation_Class}</p>
+                      <p className="text-sm mt-2 opacity-90 leading-snug">{selectedDrug.Lactation_Note || "No notes available."}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-10 bg-blue-50/50 p-6 rounded-xl border border-blue-100">
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">Maximum Adult Dosing</h2>
+                  <p className="text-blue-900 font-medium">{selectedDrug.Max_Dose_Adult}</p>
+                  {selectedDrug.Max_Dose_Notes && (
+                    <p className="text-sm text-blue-700 mt-2">{selectedDrug.Max_Dose_Notes}</p>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Available Brands & Pricing</h2>
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <table className="w-full text-left text-sm text-gray-600">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="p-4 font-semibold text-gray-700">Brand Name</th>
+                          <th className="p-4 font-semibold text-gray-700">Manufacturer</th>
+                          <th className="p-4 font-semibold text-gray-700 text-right">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedDrug["FIRST BRAND"] && (
+                          <tr className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-gray-900">{selectedDrug["FIRST BRAND"]}</td>
+                            <td className="p-4">{selectedDrug["FIRST MFG"]}</td>
+                            <td className="p-4 text-right font-semibold text-emerald-600">
+                              {selectedDrug["FIRST PRICE"]} (INR)
+                            </td>
+                          </tr>
+                        )}
+                        {selectedDrug["SECOND BRAND"] && (
+                          <tr className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-gray-900">{selectedDrug["SECOND BRAND"]}</td>
+                            <td className="p-4">{selectedDrug["SECOND MFG"]}</td>
+                            <td className="p-4 text-right font-semibold text-emerald-600">
+                              {selectedDrug["SECOND PRICE"]} (INR)
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            ) : null}
+          </main>
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DrugDirectory />);
+
+  </script>
+</body>
+</html>
