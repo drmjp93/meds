@@ -38,7 +38,7 @@
           setIsLoading(true);
           
           // REPLACE THIS WITH YOUR ACTUAL CLOUDFLARE WORKER URL
-          const baseUrl = "https://your-cloudflare-worker-link-goes-here.com";
+          const baseUrl = "https://drugs.drmjp93.workers.dev";
           const fetchUrl = `${baseUrl}?q=${encodeURIComponent(searchTerm)}`;
 
           fetch(fetchUrl)
