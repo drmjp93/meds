@@ -27,23 +27,54 @@
       const [selectedDrug, setSelectedDrug] = useState(null);
 
       // 3. THIS IS WHERE YOUR LINK GOES
-      useEffect(() => {
-        // REPLACE THE URL BELOW WITH YOUR ACTUAL CLOUDFLARE LINK
-        const backendUrl = "https://drugs.drmjp93.workers.dev/";
+     useEffect(() => {
+        // REPLACE WITH YOUR ACTUAL CLOUDFLARE LINK
+        const backendUrl = "https://drugs.drmjp93.workers.dev";
 
         fetch(backendUrl)
-          .then(response => response.json())
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
           .then(data => {
-            setDrugsData(data);           // Save the 3.5k drugs to state
-            setSelectedDrug(data[0]);     // Automatically select the first drug
-            setIsLoading(false);          // Turn off the loading screen
+            console.log("✅ RAW DATA FROM CLOUDFLARE:", data);
+
+            // 1. Figure out where the array is hiding
+            let actualArray = [];
+            
+            if (Array.isArray(data)) {
+              // It's a pure array [ {drug1}, {drug2} ]
+              actualArray = data;
+            } else if (data.drugs && Array.isArray(data.drugs)) {
+              // It's wrapped like { drugs: [ {drug1}, {drug2} ] }
+              actualArray = data.drugs;
+            } else if (data.results && Array.isArray(data.results)) {
+              // It's wrapped like { results: [ {drug1}, {drug2} ] }
+              actualArray = data.results;
+            } else {
+              // Hunt for any array inside the object
+              const arrayKey = Object.keys(data).find(key => Array.isArray(data[key]));
+              actualArray = arrayKey ? data[arrayKey] : [];
+            }
+
+            console.log("🚀 EXTRACTED ARRAY:", actualArray);
+
+            // 2. Save the data to the app
+            setDrugsData(actualArray);           
+            
+            if (actualArray.length > 0) {
+              setSelectedDrug(actualArray[0]);     
+            }
+            
+            setIsLoading(false);          
           })
           .catch(error => {
-            console.error("Error fetching data:", error);
+            console.error("❌ FETCH FAILED:", error);
             setIsLoading(false);
           });
-      }, []); // The empty brackets mean "only do this once when the page loads"
-
+      }, []);
       // Filter logic (waits for data to load first)
       const filteredDrugs = drugsData.filter(drug => {
         if (!drug) return false;
