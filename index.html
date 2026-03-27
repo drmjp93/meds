@@ -134,21 +134,42 @@
                 </div>
               )}
 
-              {!isLoading && drugsData.map((drug, index) => (
-                <div 
-                  key={drug.id || index}
-                  onClick={() => setSelectedDrug(drug)}
-                  className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border ${
-                    selectedDrug && selectedDrug.Active_Content === drug.Active_Content 
-                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300 shadow-md' 
-                      : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-sm'
-                  }`}
-                >
-                  {/* break-words ensures long drug names don't push outside the box */}
-                  <h3 className="font-bold text-base text-slate-900 leading-snug break-words">{drug.Active_Content}</h3>
-                  <p className="text-sm text-slate-500 mt-1.5 font-medium truncate">{drug.Category || 'Uncategorized'}</p>
-                </div>
-              ))}
+{!isLoading && drugsData.map((drug, index) => {
+                // Combine the brands into a single string, ignoring empty ones
+                const brands = [drug["FIRST BRAND"], drug["SECOND BRAND"]]
+                  .filter(Boolean)
+                  .join(" • ");
+
+                return (
+                  <div 
+                    key={drug.id || index}
+                    onClick={() => setSelectedDrug(drug)}
+                    className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border ${
+                      selectedDrug && selectedDrug.Active_Content === drug.Active_Content 
+                        ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300 shadow-md' 
+                        : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-sm'
+                    }`}
+                  >
+                    {/* Molecule Name */}
+                    <h3 className="font-bold text-base text-slate-900 leading-snug break-words">
+                      {drug.Active_Content}
+                    </h3>
+                    
+                    {/* Brand Names (Only shows up if brands exist in the data) */}
+                    {brands && (
+                      <p className="text-xs font-bold text-blue-600 mt-1.5 truncate">
+                        Brands: <span className="font-medium text-blue-800">{brands}</span>
+                      </p>
+                    )}
+                    
+                    {/* Category */}
+                    <p className="text-xs text-slate-500 mt-1 font-medium truncate">
+                      {drug.Category || 'Uncategorized'}
+                    </p>
+                  </div>
+                );
+              })}
+              
             </div>
           </section>
 
