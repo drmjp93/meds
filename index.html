@@ -295,32 +295,7 @@ function DrugDetail({ drug, onCalc }) {
         </div>
       </div>
 
-
-
-      {/* Max Dose */}
-      <div className="mb-5 bg-blue-50 px-5 py-4 rounded-xl border border-blue-100">
-        <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">Maximum Adult Dosing</p>
-        <p className="text-sm font-bold text-blue-900 break-words">{drug.Max_Dose_Adult || "Not specified."}</p>
-        {drug.Max_Dose_Notes && <p className="text-xs text-blue-600 mt-2 pt-2 border-t border-blue-200 leading-relaxed break-words">{drug.Max_Dose_Notes}</p>}
-      </div>
-
-
-          {/* Safety */}
-      <div className="mb-5">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Safety Profile</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {safetyCards.map(({ key, note, label }) => (
-            <div key={key} className={`p-4 rounded-xl border ${getSafetyColors(drug[key])}`}>
-              <p className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">{label}</p>
-              <p className="text-sm font-extrabold leading-snug">{drug[key] || "N/A"}</p>
-              <p className="text-xs mt-2 opacity-75 leading-relaxed break-words">{drug[note] || "No notes available."}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      
-      {/* Brands */}
+       {/* Brands */}
       <div>
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Available Brands & Pricing</p>
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -354,6 +329,29 @@ function DrugDetail({ drug, onCalc }) {
           </table>
         </div>
       </div>
+
+      {/* Max Dose */}
+      <div className="mb-5 bg-blue-50 px-5 py-4 rounded-xl border border-blue-100">
+        <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">Maximum Adult Dosing</p>
+        <p className="text-sm font-bold text-blue-900 break-words">{drug.Max_Dose_Adult || "Not specified."}</p>
+        {drug.Max_Dose_Notes && <p className="text-xs text-blue-600 mt-2 pt-2 border-t border-blue-200 leading-relaxed break-words">{drug.Max_Dose_Notes}</p>}
+      </div>
+
+
+          {/* Safety */}
+      <div className="mb-5">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Safety Profile</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {safetyCards.map(({ key, note, label }) => (
+            <div key={key} className={`p-4 rounded-xl border ${getSafetyColors(drug[key])}`}>
+              <p className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">{label}</p>
+              <p className="text-sm font-extrabold leading-snug">{drug[key] || "N/A"}</p>
+              <p className="text-xs mt-2 opacity-75 leading-relaxed break-words">{drug[note] || "No notes available."}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="h-10" />
     </div>
   );
