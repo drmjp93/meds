@@ -451,8 +451,11 @@ function DrugDirectory() {
         {/* LEFT PANE */}
         <section className="w-[400px] shrink-0 bg-white border-r flex flex-col" style={{borderColor:'var(--border)'}}>
           <div className="px-4 pt-4 pb-3 border-b shrink-0" style={{borderColor:'var(--border)'}}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-extrabold tracking-tight">Rx <span className="serif italic text-blue-600">Directory - by Dr. Mit Panchani</span></h2>
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <h2 className="text-lg font-extrabold tracking-tight leading-none">Rx <span className="serif italic text-blue-600">Directory</span></h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">By Dr. Mit Panchani</p>
+              </div>
             </div>
             <div className="relative">
               <input
@@ -552,12 +555,14 @@ function DrugDirectory() {
               const brands = [drug["FIRST BRAND"], drug["SECOND BRAND"]].filter(Boolean).join(" · ");
               const isSelected = selectedDrug?.Active_Content === drug.Active_Content;
               const isInCompare = inCompare(drug);
+              const isFocused = focusedIndex === index; // <-- Added this variable
               return (
                 <div
                   key={drug.id || index}
                   ref={el => cardRefs.current[index] = el}
                   tabIndex={0}
-                  className={`drug-card p-3.5 rounded-xl cursor-pointer transition-all duration-150 border group relative ${isSelected ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'} ${isInCompare ? 'compare-active ring-2 ring-blue-400 ring-offset-1' : ''}`}
+                  // Added the isFocused logic to the className below
+                  className={`drug-card p-3.5 rounded-xl cursor-pointer transition-all duration-150 border group relative ${isSelected ? 'bg-blue-50 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'} ${isInCompare ? 'compare-active ring-2 ring-blue-400 ring-offset-1' : ''} ${isFocused ? 'ring-2 ring-blue-600 border-transparent outline-none bg-blue-50/50' : 'outline-none'}`}
                   onClick={() => setSelectedDrug(drug)}
                   onKeyDown={e => {
                     if (e.key === 'ArrowDown') { e.preventDefault(); const next = index+1; if (cardRefs.current[next]) { setFocusedIndex(next); cardRefs.current[next].focus(); } }
