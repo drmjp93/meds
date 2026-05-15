@@ -571,10 +571,26 @@ function DrugDirectory() {
             )}
 
             {!isLoading && filteredDrugs.map((drug, index) => {
-              const brands = [drug["FIRST BRAND"], drug["SECOND BRAND"]].filter(Boolean).join(" · ");
+              // Extract data
+              const searchLower = searchTerm.toLowerCase();
+              const b1 = drug["FIRST BRAND"];
+              const b2 = drug["SECOND BRAND"];
+              
+              // DYNAMIC UI LOGIC: Figure out if the user searched for a brand
+              let prominentBrand = null;
+              if (b1 && b1.toLowerCase().includes(searchLower)) prominentBrand = b1;
+              else if (b2 && b2.toLowerCase().includes(searchLower)) prominentBrand = b2;
+
+              // Flip titles based on search intent
+              const mainTitle = prominentBrand ? prominentBrand : drug.Active_Content;
+              const subTitle = prominentBrand 
+                ? `Molecule: ${drug.Active_Content}` 
+                : ([b1, b2].filter(Boolean).join(" · ") || "No brands listed");
+
               const isSelected = selectedDrug?.Active_Content === drug.Active_Content;
               const isInCompare = inCompare(drug);
-              const isFocused = focusedIndex === index; // <-- Added this variable
+              const isFocused = focusedIndex === index; 
+              
               return (
                 <div
                   key={drug.id || index}
@@ -594,8 +610,8 @@ function DrugDirectory() {
                       {getCategoryIcon(drug.Category, isSelected ? '#2b5ce6' : '#94a3b8')}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm leading-snug break-words text-slate-900">{drug.Active_Content}</h3>
-                      {brands && <p className="text-xs text-blue-500 font-medium mt-0.5 truncate">{brands}</p>}
+                      <h3 className="font-bold text-sm leading-snug break-words text-slate-900">{mainTitle}</h3>
+                      <p className="text-xs text-blue-500 font-medium mt-0.5 truncate">{subTitle}</p>
                       <p className="text-xs text-slate-400 truncate">{drug.Category || 'Uncategorized'}</p>
                     </div>
                     {compareMode && (
